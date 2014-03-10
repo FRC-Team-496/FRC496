@@ -26,7 +26,7 @@ public class Frc496 extends SimpleRobot {
     double armdrive, xbox2, xbox5, kickerdrive;
     AnalogChannel armPot;
     Timer setArmTime;
-    DigitalInput kickerLimit;
+    DigitalInput kickerTop, kickerBottom;
 
     public Frc496() {
         driverStick = new Joystick(1);
@@ -45,8 +45,9 @@ public class Frc496 extends SimpleRobot {
 
         kicker1 = new Victor(5);
         //kicker2 = new Victor(6);
-        
-        kickerLimit = new DigitalInput(1);
+
+        kickerTop = new DigitalInput(1);
+        kickerBottom = new DigitalInput(2);
 
         leftArm = new Victor(8);
         rightArm = new Victor(7);
@@ -64,15 +65,9 @@ public class Frc496 extends SimpleRobot {
      */
     public void autonomous() {
 
-        frontLeft.setSafetyEnabled(false);
-        rearLeft.setSafetyEnabled(false);
-        frontRight.setSafetyEnabled(false);
-        rearRight.setSafetyEnabled(false);
+        
         while (isAutonomous() && isEnabled()) {
-            frontLeft.set(0.5);
-            rearLeft.set(0.5);
-            frontRight.set(0.5);
-            rearRight.set(0.5);
+            kicker1.set(-1);
         }
     }
 
@@ -81,75 +76,124 @@ public class Frc496 extends SimpleRobot {
      */
     public void operatorControl() {
         drivetrain.setSafetyEnabled(false);
+
+        boolean readyArm = false;
+        boolean spinnerOn = false;
+        boolean kick = false;
+        boolean load = false;
+        kickerdrive = 0;
         while (isOperatorControl() && isEnabled()) {
             //updateDashboard();
             drivetrain.mecanumDrive_Polar(driverStick.getMagnitude(), driverStick.getDirectionDegrees(), driverStick.getTwist());
-
-           //System.out.println(armPot.getVoltage());
+            
+            System.out.println(armPot.getVoltage());
+            boolean safeToKick = kickerBottom.get();
+            boolean safeToLoad = kickerTop.get();
+            System.out.println("Safe To Kick:" + safeToKick);
+            //System.out.println("safe To Load: " + safeToLoad);
             /**
              * ********* ARM UP AND DOWN XBOX CONTROLLER *******
              */
             xbox2 = operatorStick.getRawAxis(2);
+            double arm = armPot.getVoltage();
+
             if (xbox2 < 0.1 && xbox2 > -0.1) {
                 armdrive = 0;
             } else {
-                armdrive = xbox2 / 2;
+                if (arm <= 1.5 && xbox2 > 0) {
+                    armdrive = 0;
+                } else if (arm >= 4.80 && xbox2 < 0) {
+                    armdrive = 0;
+                } else {
+                    armdrive = xbox2 / 1.5;
+                }
+
             }
 
             leftArm.set(armdrive);
             rightArm.set(-(armdrive)); //Set one of these in reverse
 
-            
-            /*Set Kicker */
-            boolean setKicker = false;
-
-            if (operatorStick.getRawButton(4) == true) {
-                setKicker = true;
+            if (operatorStick.getRawButton(1)) {
+                readyArm = true;
             }
 
-            if (setKicker == true) {
-
-                int i;
-                for (i = 0; i < 500; i++) {
-                    kicker1.set(-1);
-                    System.out.println(i);
+            if (readyArm) {
+                if (arm > 1.80) {
+                    armdrive = 0.7;
+                } else if (arm < 1.75) {
+                    armdrive = -0.2;
+                } else {
+                    armdrive = 0;
+                    readyArm = !readyArm;
                 }
-                kicker1.set(0);
-
             }
 
-            /*** Kicker****/
-            boolean kick = false;
-            if (operatorStick.getRawButton(3) == true) {
-                kick = true;
-            }
+            leftArm.set(armdrive);
+            rightArm.set(-(armdrive)); //Set one of these in reverse
 
-            if (kick == true) {
-                int i;
-                for (i = 0; i < 900; i++) {
-                    kicker1.set(1);
-                    System.out.println(i);
+            //if (arm > 2 || arm < 1) {
+            //   kicker1.set(0);
+            //} else {
+                     // * **********Kicker Joystick XBOX **********
+                /*
+                xbox5 = operatorStick.getRawAxis(5);
+                if (xbox5 < 0.1 && xbox5 > -0.1) {
+                    kickerdrive = 0;
+                } else {
+                    kickerdrive = xbox5;
                 }
-                kicker1.set(0);
-            }
+                kicker1.set(kickerdrive);
+                */
             
-/***********************Ball Pick Up Roller ++++++++++++++++++++++++++++++++++*/
-            spinner.setDirection(Relay.Direction.kForward);
-            spinner.set(Relay.Value.kOn);
+                if(operatorStick.getRawButton(3)== true) { //X
+                    kick = true;
+                }
+                //System.out.println("kick: " + kick);
+                
+                
+                if(kick && !safeToKick) {
+                    kickerdrive = 1;
+                } else if (kick && safeToKick) {
+                    kickerdrive = 0;
+                    kick = false;
+                }
+                
+                
+                if(operatorStick.getRawButton(4) == true) {
+                    load = true;
+                }
+                
+                if(load && !safeToLoad) {
+                    kickerdrive = -0.6;
+                } else if (load && safeToLoad){
+                    kickerdrive = 0;
+                    load = false;
+                }
+                
+                //System.out.println("load: " + load);
+               kicker1.set(kickerdrive);
+
 
             /**
-             * **********Kicker Joystick XBOX **********
+             * *********************Ball Pick Up Roller
+             * ++++++++++++++++++++++++++++++++++
              */
-            xbox5 = operatorStick.getRawAxis(5);
-            if (xbox5 < 0.1 && xbox5 > -0.1) {
-                kickerdrive = 0;
-            } else {
-                kickerdrive = xbox5;
+            spinner.setDirection(Relay.Direction.kReverse);
+            if (operatorStick.getRawButton(8)) {
+                //spinnerOn++;
+                spinnerOn = !spinnerOn;
             }
-            kicker1.set(kickerdrive);
+
+            if (spinnerOn) {
+                spinner.set(Relay.Value.kOn);
+            } else {
+                spinner.set(Relay.Value.kOff);
+            }
+
         }
 
     }
+    
 
     /**
      * This function is called once each time the robot enters test mode.
