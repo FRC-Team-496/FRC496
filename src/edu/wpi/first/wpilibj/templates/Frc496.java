@@ -25,8 +25,9 @@ public class Frc496 extends SimpleRobot {
     Relay spinner;
     double armdrive, xbox2, xbox5, kickerdrive;
     AnalogChannel armPot;
-    Timer setArmTime;
+    Timer autoMove;
     DigitalInput kickerTop, kickerBottom;
+    boolean armSafe,kicked;
 
     public Frc496() {
         driverStick = new Joystick(1);
@@ -54,7 +55,7 @@ public class Frc496 extends SimpleRobot {
 
         armPot = new AnalogChannel(1);
 
-        setArmTime = new Timer();
+        autoMove = new Timer();
 
         spinner = new Relay(1);
 
@@ -64,11 +65,43 @@ public class Frc496 extends SimpleRobot {
      * This function is called once each time the robot enters autonomous mode.
      */
     public void autonomous() {
+        armSafe = !armSafe;
+        kicked = !kicked;
 
-        
-        while (isAutonomous() && isEnabled()) {
-            kicker1.set(-1);
+        /**
+         * roll forward
+         */
+        for (int i = 0; i < 2000; i++) {
+            drivetrain.mecanumDrive_Polar(0.5, armdrive, 0);
         }
+        drivetrain.mecanumDrive_Polar(0, 0, 0);
+
+        while (!armSafe) {
+            double arm = armPot.getVoltage();
+
+            if (arm > 1.80) {
+                armdrive = 0.7;
+            } else if (arm < 1.75) {
+                armdrive = -0.2;
+            } else {
+                armdrive = 0;
+                armSafe = !armSafe;
+            }
+            leftArm.set(armdrive);
+            rightArm.set(-(armdrive)); //Set one of these in reverse
+        }
+        
+        while (!kicked) {
+            boolean safeToKick = kickerBottom.get();
+            if(!safeToKick) {
+            kicker1.set(1);
+            }
+            else if(safeToKick) {
+                kicker1.set(0);
+                kicked = !kicked;
+            }
+        }
+
     }
 
     /**
@@ -85,11 +118,11 @@ public class Frc496 extends SimpleRobot {
         while (isOperatorControl() && isEnabled()) {
             //updateDashboard();
             drivetrain.mecanumDrive_Polar(driverStick.getMagnitude(), driverStick.getDirectionDegrees(), driverStick.getTwist());
-            
+
             System.out.println(armPot.getVoltage());
             boolean safeToKick = kickerBottom.get();
             boolean safeToLoad = kickerTop.get();
-            System.out.println("Safe To Kick:" + safeToKick);
+            //System.out.println("Safe To Kick:" + safeToKick);
             //System.out.println("safe To Load: " + safeToLoad);
             /**
              * ********* ARM UP AND DOWN XBOX CONTROLLER *******
@@ -131,48 +164,31 @@ public class Frc496 extends SimpleRobot {
             leftArm.set(armdrive);
             rightArm.set(-(armdrive)); //Set one of these in reverse
 
-            //if (arm > 2 || arm < 1) {
-            //   kicker1.set(0);
-            //} else {
-                     // * **********Kicker Joystick XBOX **********
-                /*
-                xbox5 = operatorStick.getRawAxis(5);
-                if (xbox5 < 0.1 && xbox5 > -0.1) {
-                    kickerdrive = 0;
-                } else {
-                    kickerdrive = xbox5;
-                }
-                kicker1.set(kickerdrive);
-                */
-            
-                if(operatorStick.getRawButton(3)== true) { //X
-                    kick = true;
-                }
-                //System.out.println("kick: " + kick);
-                
-                
-                if(kick && !safeToKick) {
-                    kickerdrive = 1;
-                } else if (kick && safeToKick) {
-                    kickerdrive = 0;
-                    kick = false;
-                }
-                
-                
-                if(operatorStick.getRawButton(4) == true) {
-                    load = true;
-                }
-                
-                if(load && !safeToLoad) {
-                    kickerdrive = -0.6;
-                } else if (load && safeToLoad){
-                    kickerdrive = 0;
-                    load = false;
-                }
-                
-                //System.out.println("load: " + load);
-               kicker1.set(kickerdrive);
+            if (operatorStick.getRawButton(3) == true) { //X
+                kick = true;
+            }
+            //System.out.println("kick: " + kick);
 
+            if (kick && !safeToKick) {
+                kickerdrive = 1;
+            } else if (kick && safeToKick) {
+                kickerdrive = 0;
+                kick = false;
+            }
+
+            if (operatorStick.getRawButton(4) == true) {
+                load = true;
+            }
+
+            if (load && !safeToLoad) {
+                kickerdrive = -0.6;
+            } else if (load && safeToLoad) {
+                kickerdrive = 0;
+                load = false;
+            }
+
+            //System.out.println("load: " + load);
+            kicker1.set(kickerdrive);
 
             /**
              * *********************Ball Pick Up Roller
@@ -193,7 +209,6 @@ public class Frc496 extends SimpleRobot {
         }
 
     }
-    
 
     /**
      * This function is called once each time the robot enters test mode.
