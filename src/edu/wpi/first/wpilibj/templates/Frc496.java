@@ -27,7 +27,7 @@ public class Frc496 extends SimpleRobot {
     AnalogChannel armPot;
     Timer autoMove;
     DigitalInput kickerTop, kickerBottom;
-    boolean armSafe, kicked;
+    boolean armSafe, kicked, movedForward;
 
     public Frc496() {
         driverStick = new Joystick(1);
@@ -67,15 +67,30 @@ public class Frc496 extends SimpleRobot {
     public void autonomous() {
         armSafe = false;
         kicked = false;
+        movedForward = false;
+        int i;
 
         while (isAutonomous() && isEnabled()) {
+
+            while (!movedForward) {
+                for (i = 0; i < 1000; i++) {
+                    frontLeft.set(-0.5);
+                    rearLeft.set(-0.5);
+                    frontRight.set(0.5);
+                    rearRight.set(0.5);
+                }
+                frontLeft.set(0);
+                rearLeft.set(0);
+                frontRight.set(0);
+                rearRight.set(0);
+                movedForward = !movedForward;
+            }
+
             while (!armSafe) {
                 double arm = armPot.getVoltage();
 
-                if (arm > 1.80) {
+                if (arm > 1.76) {
                     armdrive = 0.7;
-                } else if (arm < 1.75) {
-                    armdrive = -0.2;
                 } else {
                     armdrive = 0;
                     armSafe = !armSafe;
@@ -89,7 +104,7 @@ public class Frc496 extends SimpleRobot {
             while (!kicked) {
                 boolean safeToKick = kickerBottom.get();
                 if (!safeToKick) {
-                    kicker1.set(1);
+                    kicker1.set(0.7);
                 } else if (safeToKick) {
                     kicker1.set(0);
                     kicked = !kicked;
