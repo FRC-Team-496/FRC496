@@ -27,7 +27,7 @@ public class Frc496 extends SimpleRobot {
     AnalogChannel armPot;
     Timer autoMove;
     DigitalInput kickerTop, kickerBottom;
-    boolean armSafe,kicked;
+    boolean armSafe, kicked;
 
     public Frc496() {
         driverStick = new Joystick(1);
@@ -65,43 +65,41 @@ public class Frc496 extends SimpleRobot {
      * This function is called once each time the robot enters autonomous mode.
      */
     public void autonomous() {
-        armSafe = !armSafe;
-        kicked = !kicked;
+        armSafe = false;
+        kicked = false;
 
-        /**
-         * roll forward
-         */
-        for (int i = 0; i < 2000; i++) {
-            drivetrain.mecanumDrive_Polar(0.5, armdrive, 0);
-        }
-        drivetrain.mecanumDrive_Polar(0, 0, 0);
+        while (isAutonomous() && isEnabled()) {
+            while (!armSafe) {
+                double arm = armPot.getVoltage();
 
-        while (!armSafe) {
-            double arm = armPot.getVoltage();
-
-            if (arm > 1.80) {
-                armdrive = 0.7;
-            } else if (arm < 1.75) {
-                armdrive = -0.2;
-            } else {
-                armdrive = 0;
-                armSafe = !armSafe;
+                if (arm > 1.80) {
+                    armdrive = 0.7;
+                } else if (arm < 1.75) {
+                    armdrive = -0.2;
+                } else {
+                    armdrive = 0;
+                    armSafe = !armSafe;
+                }
+                leftArm.set(armdrive);
+                rightArm.set(-(armdrive)); //Set one of these in reverse
             }
-            leftArm.set(armdrive);
-            rightArm.set(-(armdrive)); //Set one of these in reverse
-        }
-        
-        while (!kicked) {
-            boolean safeToKick = kickerBottom.get();
-            if(!safeToKick) {
-            kicker1.set(1);
-            }
-            else if(safeToKick) {
-                kicker1.set(0);
-                kicked = !kicked;
-            }
-        }
+            leftArm.set(0);
+            rightArm.set(0);
 
+            while (!kicked) {
+                boolean safeToKick = kickerBottom.get();
+                if (!safeToKick) {
+                    kicker1.set(1);
+                } else if (safeToKick) {
+                    kicker1.set(0);
+                    kicked = !kicked;
+                }
+            }
+            kicker1.set(0);
+        }
+        leftArm.set(0);
+        rightArm.set(0);
+        kicker1.set(0);
     }
 
     /**
