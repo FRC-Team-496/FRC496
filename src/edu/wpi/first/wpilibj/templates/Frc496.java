@@ -126,6 +126,7 @@ public class Frc496 extends SimpleRobot {
         boolean spinnerOn = false;
         boolean kick = false;
         boolean load = false;
+        boolean pass = false;
         kickerdrive = 0;
         while (isOperatorControl() && isEnabled()) {
             //updateDashboard();
@@ -198,7 +199,17 @@ public class Frc496 extends SimpleRobot {
                 kickerdrive = 0;
                 load = false;
             }
-
+            
+            if (operatorStick.getRawButton(1) == true) {
+                pass = true;
+            }
+            
+            if (pass && !safeToKick) {
+                kickerdrive = 1;
+            } else if (pass && safeToKick) {
+                kickerdrive = 0;
+                pass = false;
+            }
             //System.out.println("load: " + load);
             kicker1.set(kickerdrive);
 
