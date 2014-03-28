@@ -72,20 +72,6 @@ public class Frc496 extends SimpleRobot {
 
         while (isAutonomous() && isEnabled()) {
 
-            while (!movedForward) {
-                for (i = 0; i < 1000; i++) {
-                    frontLeft.set(-0.5);
-                    rearLeft.set(-0.5);
-                    frontRight.set(0.5);
-                    rearRight.set(0.5);
-                }
-                frontLeft.set(0);
-                rearLeft.set(0);
-                frontRight.set(0);
-                rearRight.set(0);
-                movedForward = !movedForward;
-            }
-
             while (!armSafe) {
                 double arm = armPot.getVoltage();
 
@@ -111,6 +97,20 @@ public class Frc496 extends SimpleRobot {
                 }
             }
             kicker1.set(0);
+        }
+
+        while (!movedForward) {
+            for (i = 0; i < 4000; i++) {
+                frontLeft.set(-0.5);
+                rearLeft.set(-0.5);
+                frontRight.set(0.5);
+                rearRight.set(0.5);
+            }
+            frontLeft.set(0);
+            rearLeft.set(0);
+            frontRight.set(0);
+            rearRight.set(0);
+            movedForward = !movedForward;
         }
         leftArm.set(0);
         rightArm.set(0);
